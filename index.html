@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Ecuaciones con Cartas Didácticas - Modo Desafío</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #2e7d32;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 10px;
+            min-height: 100vh;
+            touch-action: manipulation;
+            overflow-x: hidden;
+        }
+
+        h1 { font-size: 1.4rem; margin: 5px 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); text-align: center; }
+        
+        #marcador-progreso {
+            display: flex;
+            justify-content: space-between;
+            width: 95%;
+            max-width: 500px;
+            font-size: 0.9rem;
+            font-family: monospace;
+            background: rgba(0,0,0,0.2);
+            padding: 5px 12px;
+            border-radius: 8px;
+            margin-bottom: 5px;
+        }
+
+        #consola-feedback {
+            font-size: 1rem;
+            font-weight: bold;
+            background-color: rgba(0,0,0,0.3);
+            padding: 8px 15px;
+            border-radius: 20px;
+            margin-bottom: 10px;
+            text-align: center;
+            width: 95%;
+            max-width: 500px;
+            min-height: 38px;
+        }
+
+        /* PANEL DE ACCESO */
+        .cyber-panel {
+            background: rgba(20, 20, 20, 0.95);
+            border: 2px solid #8d6e63;
+            border-radius: 15px;
+            padding: 25px;
+            width: 95%;
+            max-width: 400px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            margin-top: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .cyber-panel select, .cyber-panel button {
+            width: 100%;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            outline: none;
+            border: none;
+        }
+
+        .cyber-panel select {
+            background-color: #111;
+            color: #00f2ff;
+            border: 1px solid #444;
+        }
+        .cyber-panel select:disabled { opacity: 0.4; color: #aaa; }
+
+        .btn-acceso {
+            background-color: #00f2ff;
+            color: black;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .btn-acceso:disabled { opacity: 0.2; cursor: not-allowed; }
+
+        /* AREA DE JUEGO */
+        #zona-juego-contenedor {
+            display: none;
+            width: 100%;
+            max-width: 500px;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #tablero {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #1b5e20;
+            border: 3px solid #8d6e63;
+            border-radius: 10px;
+            padding: 12px;
+            width: 98%;
+            box-shadow: 0px 8px 16px rgba(0,0,0,0.3);
+            margin-bottom: 10px;
+        }
+
+        .zona-drop {
+            width: 100%;
+            min-height: 120px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-content: center;
+            justify-content: center;
+            padding: 10px;
+            border: 2px dashed rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            position: relative;
+        }
+
+        #signo-igual {
+            font-size: 2.2rem;
+            font-weight: bold;
+            margin: 5px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .fraccion { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; }
+        .numerador { display: flex; gap: 5px; justify-content: center; }
+        .linea-divisoria { width: 100%; height: 3px; background-color: white; margin: 4px 0; }
+        .denominador {
+            display: flex; justify-content: center; align-items: center;
+            min-height: 90px; min-width: 70px;
+            border: 2px dashed rgba(255, 255, 255, 0.4); border-radius: 8px;
+        }
+
+        /* Cartas */
+        .carta {
+            width: 70px;
+            height: 95px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            box-shadow: 0px 3px 5px rgba(0,0,0,0.3);
+            user-select: none;
+            touch-action: none;
+            position: relative;
+            z-index: 10;
+        }
+
+        .positivo { background-color: #ffeb3b; color: #212121; border: 2px solid #fbc02d; }
+        .negativo { background-color: #4caf50; color: white; border: 2px solid #388e3c; }
+        .cero-neutral { background-color: #b0bec5; color: #37474f; border: 2px solid #78909c; }
+        .carta-coeficiente { border: 3px dashed #ff5722; animation: pulso 1.5s infinite; }
+        .carta-ganadora { background-color: #00e676 !important; color: #1b5e20 !important; border: 2px solid #fff !important; box-shadow: 0px 0px 12px #00e676; }
+        .carta-vacia { background-color: #d32f2f !important; color: white !important; border: 2px dashed #ffffff !important; }
+
+        .signo-por { font-size: 1.5rem; font-weight: bold; align-self: center; margin: 0 3px; }
+
+        /* Controles */
+        #controles { display: flex; gap: 8px; width: 98%; justify-content: center; }
+        button.game-btn {
+            flex: 1; padding: 12px 8px; font-size: 0.9rem; cursor: pointer; border-radius: 6px;
+            border: none; font-weight: bold; box-shadow: 0px 3px 5px rgba(0,0,0,0.2); color: white;
+        }
+        .btn-sumar { background-color: #0288d1; }
+        .btn-calcular { background-color: #00c853; display: none; }
+        .btn-siguiente { background-color: #e65100; display: none; }
+        .btn-vacia { background-color: #d32f2f; display: none; }
+
+        @keyframes pulso {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.04); box-shadow: 0px 0px 10px #ff5722; }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Ecuaciones con Cartas</h1>
+
+    <div id="setup-area" class="cyber-panel">
+        <select id="group-select">
+            <option value="">SELECCIONAR GRUPO</option>
+            <option value="9-1">NODOS 9-1</option>
+            <option value="9-2">NODOS 9-2</option>
+            <option value="9-3">NODOS 9-3</option>
+            <option value="9-4">NODOS 9-4</option>
+        </select>
+        <select id="studentNameSelect" disabled>
+            <option value="">IDENTIFICACIÓN...</option>
+        </select>
+        <button id="start-btn" class="btn-acceso" disabled>INICIAR EVALUACIÓN</button>
+    </div>
+
+    <div id="zona-juego-contenedor">
+        <div id="marcador-progreso">
+            <span id="txt-ecuacion-num">Ecuación: 1 / 10</span>
+            <span id="txt-tiempo-cronometro">Tiempo: 0s</span>
+        </div>
+        
+        <div id="consola-feedback">¡Organiza los miembros en el tablero táctil!</div>
+
+        <div id="tablero">
+            <div id="izq" class="zona-drop"></div>
+            <div id="signo-igual">=</div>
+            <div id="der" class="zona-drop"></div>
+        </div>
+
+        <div id="controles">
+            <button id="btn-sumar" class="game-btn btn-sumar" onclick="sumarLados()">Sumar Miembros</button>
+            <button id="btn-vacia" class="game-btn btn-vacia" onclick="declararSinSolucion()">Sin Solución</button>
+            <button id="btn-calcular" class="game-btn btn-calcular" onclick="calcularResultadoFinal()">Calcular Valor</button>
+            <button id="btn-siguiente" class="game-btn btn-siguiente" onclick="avanzarDesafio()">Siguiente Ecuación</button>
+        </div>
+    </div>
+
+    <script src="comunicacion_com5A.js"></script>
+
+    <script>
+        let faseDespeje = false;
+        let cartaArrastrada = null;
+        let infoPointer = { startX: 0, startY: 0 };
+        
+        let ecuacionActual = 1;
+        const TOTAL_ECUACIONES = 10;
+        let tiempoInicioTotal = 0;
+        let intervaloCronometro = null;
+        let xSeCancelaEnEstaEcuacion = false;
+
+        let jugadorSeleccionado = null;
+        let grupoSeleccionado = null;
+        let apiUrlActual = null;
+
+        // --- ENLACE CON TU SCRIPT GAS ---
+        const groupSel = document.getElementById('group-select');
+        const nameSel = document.getElementById('studentNameSelect');
+        const startBtn = document.getElementById('start-btn');
+
+        groupSel.onchange = async () => {
+            grupoSeleccionado = groupSel.value;
+            if(!grupoSeleccionado) return;
+            
+            nameSel.innerHTML = '<option value="">Cargando alumnos...</option>';
+            nameSel.disabled = true;
+            startBtn.disabled = true;
+
+            const [nombres, url] = await GoogleSheet.obtenerNombres(grupoSeleccionado);
+            apiUrlActual = url;
+            
+            nameSel.innerHTML = '<option value="">IDENTIFICACIÓN...</option>';
+            nombres.forEach(n => nameSel.innerHTML += `<option value="${n}">${n}</option>`);
+            nameSel.disabled = false;
+        };
+
+        nameSel.onchange = () => { 
+            jugadorSeleccionado = nameSel.value;
+            startBtn.disabled = !jugadorSeleccionado; 
+        };
+
+        startBtn.onclick = () => {
+            document.getElementById('setup-area').style.display = 'none';
+            document.getElementById('zona-juego-contenedor').style.display = 'flex';
+            tiempoInicioTotal = Date.now();
+            
+            intervaloCronometro = setInterval(() => {
+                const segundos = Math.floor((Date.now() - tiempoInicioTotal) / 1000);
+                document.getElementById('txt-tiempo-cronometro').textContent = `Tiempo: ${segundos}s`;
+            }, 1000);
+
+            generarEcuacionAleatoria();
+        };
+
+        // --- GENERADOR ---
+        function generarEcuacionAleatoria() {
+            faseDespeje = false;
+            xSeCancelaEnEstaEcuacion = Math.random() < 0.20; // 20% probabilidad de anulación total de X
+
+            document.getElementById('btn-sumar').style.display = 'inline-block';
+            document.getElementById('btn-vacia').style.display = 'none';
+            document.getElementById('btn-calcular').style.display = 'none';
+            document.getElementById('btn-siguiente').style.display = 'none';
+            document.getElementById('txt-ecuacion-num').textContent = `Ecuación: ${ecuacionActual} / ${TOTAL_ECUACIONES}`;
+            document.getElementById('consola-feedback').innerHTML = "Organiza las x en un lado y los enteros en el otro.";
+
+            const zonaIzq = document.getElementById('izq');
+            const zonaDer = document.getElementById('der');
+            zonaIzq.innerHTML = '';
+            zonaDer.innerHTML = '';
+
+            if (xSeCancelaEnEstaEcuacion) {
+                const xComun = Math.floor(Math.random() * 3) + 2;
+                const numIzq = Math.floor(Math.random() * 5) + 1;
+                const numDer = numIzq + (Math.floor(Math.random() * 4) + 2); 
+
+                crearCartaEstatica(zonaIzq, xComun, 'incognita');
+                crearCartaEstatica(zonaIzq, numIzq, 'numero');
+                crearCartaEstatica(zonaDer, xComun, 'incognita');
+                crearCartaEstatica(zonaDer, numDer, 'numero');
+            } else {
+                const xObjetivo = Math.floor(Math.random() * 7) + 2 * (Math.random() > 0.5 ? 1 : -1); 
+                const coefFinal = Math.floor(Math.random() * 3) + 2 * (Math.random() > 0.5 ? 1 : -1); 
+
+                const xIzq1 = Math.floor(Math.random() * 4) + 1;
+                const xDer1 = xIzq1 - coefFinal; 
+
+                const numDer1 = Math.floor(Math.random() * 5) + 1;
+                const numIzq1 = numDer1 - (coefFinal * xObjetivo);
+
+                crearCartaEstatica(zonaIzq, xIzq1, 'incognita');
+                crearCartaEstatica(zonaIzq, numIzq1, 'numero');
+                crearCartaEstatica(zonaDer, xDer1, 'incognita');
+                crearCartaEstatica(zonaDer, numDer1, 'numero');
+            }
+
+            inyectarEventosTactiles();
+        }
+
+        function crearCartaEstatica(contenedor, valor, tipo) {
+            const carta = document.createElement('div');
+            carta.classList.add('carta');
+            carta.id = 'c_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+            carta.setAttribute('data-valor', valor);
+            carta.setAttribute('data-tipo', tipo);
+            
+            if (valor === 0) {
+                carta.classList.add('cero-neutral');
+                carta.textContent = `0`;
+            } else if (valor > 0) {
+                carta.classList.add('positivo');
+                carta.textContent = `+${valor}${tipo === 'incognita' ? 'x' : ''}`;
+            } else {
+                carta.classList.add('negativo');
+                carta.textContent = `${valor}${tipo === 'incognita' ? 'x' : ''}`;
+            }
+            contenedor.appendChild(carta);
+        }
+
+        // --- POINTER EVENTS ---
+        function inyectarEventosTactiles() {
+            document.querySelectorAll('.carta').forEach(carta => {
+                // El cero estático no se puede arrastrar
+                if (parseInt(carta.getAttribute('data-valor')) !== 0) {
+                    carta.addEventListener('pointerdown', iniciarArrastre);
+                }
+            });
+        }
+
+        function iniciarArrastre(e) {
+            if (faseDespeje && !e.target.classList.contains('carta-coeficiente')) return;
+            
+            cartaArrastrada = e.target;
+            cartaArrastrada.setPointerCapture(e.pointerId);
+            
+            const rect = cartaArrastrada.getBoundingClientRect();
+            infoPointer.startX = e.clientX - rect.left;
+            infoPointer.startY = e.clientY - rect.top;
+
+            cartaArrastrada.style.position = 'fixed';
+            cartaArrastrada.style.left = `${e.clientX - infoPointer.startX}px`;
+            cartaArrastrada.style.top = `${e.clientY - infoPointer.startY}px`;
+            cartaArrastrada.style.zIndex = '1000';
+
+            cartaArrastrada.addEventListener('pointermove', moverCarta);
+            cartaArrastrada.addEventListener('pointerup', finalizarArrastre);
+        }
+
+        function moverCarta(e) {
+            if (!cartaArrastrada) return;
+            cartaArrastrada.style.left = `${e.clientX - infoPointer.startX}px`;
+            cartaArrastrada.style.top = `${e.clientY - infoPointer.startY}px`;
+        }
+
+        function finalizarArrastre(e) {
+            if (!cartaArrastrada) return;
+            
+            cartaArrastrada.removeEventListener('pointermove', moverCarta);
+            cartaArrastrada.removeEventListener('pointerup', finalizarArrastre);
+            
+            cartaArrastrada.style.position = '';
+            cartaArrastrada.style.left = '';
+            cartaArrastrada.style.top = '';
+            cartaArrastrada.style.zIndex = '';
+
+            const elementoDestino = document.elementFromPoint(e.clientX, e.clientY);
+            const zonaDestino = elementoDestino ? elementoDestino.closest('.zona-drop, .denominador') : null;
+            const origenPadre = cartaArrastrada.parentElement;
+
+            if (zonaDestino) {
+                if (zonaDestino.classList.contains('denominador') && cartaArrastrada.classList.contains('carta-coeficiente')) {
+                    const valor = parseInt(cartaArrastrada.getAttribute('data-valor'));
+                    if (valor < 0) cartaArrastrada.textContent = `(${valor})`;
+                    zonaDestino.appendChild(cartaArrastrada);
+                    
+                    const signoPor = document.querySelector('.signo-por');
+                    if (signoPor) signoPor.remove();
+
+                    document.getElementById('btn-calcular').style.display = 'inline-block';
+                    document.getElementById('consola-feedback').textContent = "¡Estructura lista! Presiona 'Calcular Valor'.";
+                } 
+                else if (zonaDestino.classList.contains('zona-drop') && !faseDespeje) {
+                    if (origenPadre !== zonaDestino) {
+                        voltearCarta(cartaArrastrada);
+                    }
+                    zonaDestino.appendChild(cartaArrastrada);
+                }
+            }
+            cartaArrastrada = null;
+        }
+
+        function voltearCarta(carta) {
+            let valor = parseInt(carta.getAttribute('data-valor'));
+            const tipo = carta.getAttribute('data-tipo');
+            valor = -valor;
+            carta.setAttribute('data-valor', valor);
+            
+            if (valor === 0) {
+                carta.className = 'carta cero-neutral';
+                carta.textContent = `0`;
+            } else if (valor > 0) {
+                carta.className = 'carta positivo';
+                carta.textContent = `+${valor}${tipo === 'incognita' ? 'x' : ''}`;
+            } else {
+                carta.className = 'carta negativo';
+                carta.textContent = `${valor}${tipo === 'incognita' ? 'x' : ''}`;
+            }
+        }
+
+        // --- ALGORITMO DE REDUCCIÓN CORREGIDO (Soporta el Cero) ---
+        function sumarLados() {
+            reducirLado('izq');
+            reducirLado('der');
+            setTimeout(comprobarDespejeFase, 400);
+        }
+
+        function reducirLado(ladoId) {
+            const zona = document.getElementById(ladoId);
+            const cartas = zona.querySelectorAll('.carta');
+            let sX = 0, sN = 0;
+            let tieneX = false, tieneN = false;
+
+            cartas.forEach(c => {
+                const v = parseInt(c.getAttribute('data-valor'));
+                if (c.getAttribute('data-tipo') === 'incognita') { 
+                    sX += v; 
+                    tieneX = true; 
+                } else { 
+                    sN += v; 
+                    tieneN = true; 
+                }
+            });
+
+            zona.innerHTML = '';
+            
+            // Si todo da cero en este lado, se dibuja un solo 0 neutral explícito
+            if (sX === 0 && sN === 0) {
+                crearCartaEstatica(zona, 0, 'numero');
+                return;
+            }
+
+            if (sX !== 0) {
+                crearCartaEstatica(zona, sX, 'incognita');
+            }
+            if (sN !== 0 || (sX === 0 && tieneX && !tieneN)) {
+                // Si las x dieron 0 y no había números, dejamos un 0 explícito
+                crearCartaEstatica(zona, sN, 'numero');
+            }
+        }
+
+        function comprobarDespejeFase() {
+            const cIzq = document.getElementById('izq').querySelectorAll('.carta');
+            const cDer = document.getElementById('der').querySelectorAll('.carta');
+            
+            // VERIFICACIÓN DE CANCELACIÓN DE VARIABLES (0x)
+            let xAnuladaEnIzquierda = (cIzq.length === 1 && cIzq[0].getAttribute('data-tipo') === 'numero' && parseInt(cIzq[0].getAttribute('data-valor')) === 0);
+            let xAnuladaEnDerecha = (cDer.length === 1 && cDer[0].getAttribute('data-tipo') === 'numero' && parseInt(cDer[0].getAttribute('data-valor')) === 0);
+
+            if (xSeCancelaEnEstaEcuacion || (cIzq.length === 1 && cDer.length === 1 && cIzq[0].getAttribute('data-tipo') === 'numero' && cDer[0].getAttribute('data-tipo') === 'numero')) {
+                document.getElementById('btn-sumar').style.display = 'none';
+                document.getElementById('btn-vacia').style.display = 'inline-block';
+                document.getElementById('consola-feedback').innerHTML = "⚠️ ¡Las variables x se han anulado! Declara el estado de la ecuación.";
+                return;
+            }
+
+            let lX = null, lN = null;
+            if (cIzq.length === 1 && cDer.length === 1) {
+                if (cIzq[0].getAttribute('data-tipo') === 'incognita' && cDer[0].getAttribute('data-tipo') === 'numero') {
+                    lX = { z: document.getElementById('izq'), c: cIzq[0] }; lN = { z: document.getElementById('der'), c: cDer[0] };
+                } else if (cDer[0].getAttribute('data-tipo') === 'incognita' && cIzq[0].getAttribute('data-tipo') === 'numero') {
+                    lX = { z: document.getElementById('der'), c: cDer[0] }; lN = { z: document.getElementById('izq'), c: cIzq[0] };
+                }
+            }
+
+            if (lX && lN) {
+                const coef = parseInt(lX.c.getAttribute('data-valor'));
+                const numValor = parseInt(lN.c.getAttribute('data-valor'));
+
+                if (coef === 1) {
+                    finalizarEcuacionNormal(numValor);
+                    return;
+                }
+                
+                faseDespeje = true;
+                document.getElementById('btn-sumar').style.display = 'none';
+                document.getElementById('consola-feedback').textContent = "Arrastra el coeficiente abajo del miembro opuesto.";
+
+                lX.z.innerHTML = '';
+                const cartaC = document.createElement('div');
+                cartaC.className = `carta carta-coeficiente ${coef >= 0 ? 'positivo' : 'negativo'}`;
+                cartaC.textContent = (coef >= 0 ? '+' : '') + coef;
+                cartaC.id = 'coef_final';
+                cartaC.setAttribute('data-valor', coef);
+                
+                const por = document.createElement('span');
+                por.className = 'signo-por';
+                por.innerHTML = '&bull;';
+
+                const cX = document.createElement('div');
+                cX.className = 'carta positivo';
+                cX.textContent = 'x';
+
+                lX.z.appendChild(cartaC);
+                lX.z.appendChild(por);
+                lX.z.appendChild(cX);
+
+                lN.z.innerHTML = '';
+                const frac = document.createElement('div');
+                frac.className = 'fraccion';
+                const numCont = document.createElement('div');
+                numCont.className = 'numerador';
+                
+                crearCartaEstatica(numCont, numValor, 'numero');
+                
+                const line = document.createElement('div');
+                line.className = 'linea-divisoria';
+                const denCont = document.createElement('div');
+                denCont.className = 'denominador';
+
+                frac.appendChild(numCont);
+                frac.appendChild(line);
+                frac.appendChild(denCont);
+                lN.z.appendChild(frac);
+
+                inyectarEventosTactiles();
+            }
+        }
+
+        function declararSinSolucion() {
+            document.getElementById('btn-vacia').style.display = 'none';
+            document.getElementById('der').innerHTML = '';
+            
+            const cartaNula = document.createElement('div');
+            cartaNula.className = 'carta carta-vacia';
+            cartaNula.textContent = 'Ø';
+            document.getElementById('der').appendChild(cartaNula);
+
+            document.getElementById('consola-feedback').innerHTML = `✖️ <strong>La ecuación no tiene solución</strong>.`;
+            document.getElementById('btn-siguiente').style.display = 'inline-block';
+        }
+
+        function finalizarEcuacionNormal(valorFinal) {
+            document.getElementById('btn-sumar').style.display = 'none';
+            document.getElementById('consola-feedback').innerHTML = `¡Logrado! El valor es <strong>x = ${valorFinal}</strong>`;
+            document.getElementById('btn-siguiente').style.display = 'inline-block';
+        }
+
+        function calcularResultadoFinal() {
+            const d = document.getElementById('coef_final');
+            const n = document.querySelector('.numerador .carta');
+            const f = document.querySelector('.fraccion');
+            
+            if (d && n && f) {
+                const numVal = parseFloat(n.getAttribute('data-valor'));
+                const denVal = parseFloat(d.getAttribute('data-valor'));
+                
+                const res = numVal / denVal;
+                const resForm = Number.isInteger(res) ? res : res.toFixed(1);
+                const padre = f.parentElement;
+
+                padre.innerHTML = '';
+                const cG = document.createElement('div');
+                cG.className = 'carta carta-ganadora';
+                cG.textContent = (resForm >= 0 ? '+' : '') + resForm;
+                padre.appendChild(cG);
+
+                document.getElementById('btn-calcular').style.display = 'none';
+                document.getElementById('consola-feedback').innerHTML = `¡Resuelta con éxito! Valor: <strong>x = ${resForm}</strong>`;
+                document.getElementById('btn-siguiente').style.display = 'inline-block';
+            }
+        }
+
+        function avanzarDesafio() {
+            if (ecuacionActual < TOTAL_ECUACIONES) {
+                ecuacionActual++;
+                generarEcuacionAleatoria();
+            } else {
+                finalizarEvaluacionCompleta();
+            }
+        }
+
+        async function finalizarEvaluacionCompleta() {
+            clearInterval(intervaloCronometro);
+            const tiempoTotalSegundos = Math.floor((Date.now() - tiempoInicioTotal) / 1000);
+            
+// Puntuacion
+            let notaFinal = 5.0 - (tiempoTotalSegundos * 0.0025);
+            if (notaFinal < 1.0) notaFinal = 1.0; 
+            const notaFormateada = notaFinal.toFixed(1);
+
+            document.getElementById('zona-juego-contenedor').innerHTML = `
+                <div class="cyber-panel" style="max-width: 100%; border-color: #00e676; text-align: center;">
+                    <h2 style="font-size: 3.5rem; margin: 10px 0; color: #00e676;">${notaFormateada}</h2>
+                    <p style="font-family: monospace; opacity: 0.8; font-size: 0.9rem;">
+                        DESAFÍO COMPLETADO EN ${tiempoTotalSegundos} SEGUNDOS.<br>REGISTRO ENVIADO A LA HOJA CENTRAL.
+                    </p>
+                    <button onclick="location.reload()" style="background-color: #0288d1; color: white; padding: 12px; border: none; border-radius: 8px; font-weight: bold; width: 100%; cursor: pointer;">
+                        REINICIAR TERMINAL
+                    </button>
+                </div>
+            `;
+
+            const datosEnvio = {
+                nombre: jugadorSeleccionado,
+                grupo: grupoSeleccionado,
+                puntaje: parseFloat(notaFormateada),
+                juego: "Cartas_Ecuaciones_9"
+            };
+
+            const respuesta = await GoogleSheet.guardarResultado(apiUrlActual, datosEnvio);
+            console.log("Respuesta del servidor escolar:", respuesta);
+        }
+    </script>
+</body>
+</html>
