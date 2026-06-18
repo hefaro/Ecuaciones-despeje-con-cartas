@@ -474,7 +474,7 @@
             }
         }
 
-        // --- SISTEMA DE VERIFICACIÓN BLINDADO CONTRA MEZCLAS ---
+        // --- SISTEMA DE VERIFICACIÓN TOTALMENTE FLUIDO ---
         function comprobarDespejeFase() {
             const cIzq = document.getElementById('izq').querySelectorAll('.carta');
             const cDer = document.getElementById('der').querySelectorAll('.carta');
@@ -488,17 +488,16 @@
             }
 
             // 2. VERIFICACIÓN DE CLASIFICACIÓN CORRECTA
-            // Revisamos si en algún lado todavía conviven X y números juntos
             let mezclaEnIzquierda = (cIzq.length > 1);
             let mezclaEnDerecha = (cDer.length > 1);
 
             if (mezclaEnIzquierda || mezclaEnDerecha) {
-                // Hay mezclas en el tablero, informamos al estudiante sin bloquear la app
                 document.getElementById('consola-feedback').innerHTML = "⚠️ Aún hay variables y enteros mezclados en el mismo lado. ¡Muévelos correspondientemente!";
+                inyectarEventosTactiles(); // <-- CAMBIO CLAVE: Reinyectar eventos aquí para mantener la movilidad activa
                 return; 
             }
 
-            // 3. ANÁLISIS DE ESTRUCTURA LIMPIA (Un término por lado)
+            // 3. ANÁLISIS DE ESTRUCTURA LIMPIA
             let lX = null, lN = null;
             if (cIzq.length === 1 && cDer.length === 1) {
                 if (cIzq[0].getAttribute('data-tipo') === 'incognita' && cDer[0].getAttribute('data-tipo') === 'numero') {
@@ -561,8 +560,8 @@
 
                 inyectarEventosTactiles();
             } else {
-                // Si está limpio pero no tiene la estructura X = Número (por ejemplo, Número = X)
                 document.getElementById('consola-feedback').innerHTML = "Organiza las x en un lado y los enteros en el otro antes de despejar.";
+                inyectarEventosTactiles(); // <-- CAMBIO CLAVE: Reinyectar eventos aquí también
             }
         }
 
@@ -623,7 +622,6 @@
             clearInterval(intervaloCronometro);
             const tiempoTotalSegundos = Math.floor((Date.now() - tiempoInicioTotal) / 1000);
             
-            // Factor de descuento ajustado para hacerlo un poco más amigable (0.0025)
             let notaFinal = 5.0 - (tiempoTotalSegundos * 0.0025);
             if (notaFinal < 1.0) notaFinal = 1.0; 
             const notaFormateada = notaFinal.toFixed(1);
