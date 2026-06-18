@@ -284,7 +284,7 @@
         // --- GENERADOR ---
         function generarEcuacionAleatoria() {
             faseDespeje = false;
-            xSeCancelaEnEstaEcuacion = Math.random() < 0.20; // 20% probabilidad de anulación total de X
+            xSeCancelaEnEstaEcuacion = Math.random() < 0.20; 
 
             document.getElementById('btn-sumar').style.display = 'inline-block';
             document.getElementById('btn-vacia').style.display = 'none';
@@ -349,7 +349,6 @@
         // --- POINTER EVENTS ---
         function inyectarEventosTactiles() {
             document.querySelectorAll('.carta').forEach(carta => {
-                // El cero estático no se puede arrastrar
                 if (parseInt(carta.getAttribute('data-valor')) !== 0) {
                     carta.addEventListener('pointerdown', iniciarArrastre);
                 }
@@ -436,7 +435,7 @@
             }
         }
 
-        // --- ALGORITMO DE REDUCCIÓN CORREGIDO (Soporta el Cero) ---
+        // --- SUMA Y REDUCCIÓN ---
         function sumarLados() {
             reducirLado('izq');
             reducirLado('der');
@@ -462,7 +461,6 @@
 
             zona.innerHTML = '';
             
-            // Si todo da cero en este lado, se dibuja un solo 0 neutral explícito
             if (sX === 0 && sN === 0) {
                 crearCartaEstatica(zona, 0, 'numero');
                 return;
@@ -472,19 +470,16 @@
                 crearCartaEstatica(zona, sX, 'incognita');
             }
             if (sN !== 0 || (sX === 0 && tieneX && !tieneN)) {
-                // Si las x dieron 0 y no había números, dejamos un 0 explícito
                 crearCartaEstatica(zona, sN, 'numero');
             }
         }
 
+        // --- SISTEMA DE VERIFICACIÓN BLINDADO CONTRA MEZCLAS ---
         function comprobarDespejeFase() {
             const cIzq = document.getElementById('izq').querySelectorAll('.carta');
             const cDer = document.getElementById('der').querySelectorAll('.carta');
             
-            // VERIFICACIÓN DE CANCELACIÓN DE VARIABLES (0x)
-            let xAnuladaEnIzquierda = (cIzq.length === 1 && cIzq[0].getAttribute('data-tipo') === 'numero' && parseInt(cIzq[0].getAttribute('data-valor')) === 0);
-            let xAnuladaEnDerecha = (cDer.length === 1 && cDer[0].getAttribute('data-tipo') === 'numero' && parseInt(cDer[0].getAttribute('data-valor')) === 0);
-
+            // 1. CONDICIÓN DE ANULACIÓN DE VARIABLES (Sin Solución)
             if (xSeCancelaEnEstaEcuacion || (cIzq.length === 1 && cDer.length === 1 && cIzq[0].getAttribute('data-tipo') === 'numero' && cDer[0].getAttribute('data-tipo') === 'numero')) {
                 document.getElementById('btn-sumar').style.display = 'none';
                 document.getElementById('btn-vacia').style.display = 'inline-block';
@@ -492,6 +487,18 @@
                 return;
             }
 
+            // 2. VERIFICACIÓN DE CLASIFICACIÓN CORRECTA
+            // Revisamos si en algún lado todavía conviven X y números juntos
+            let mezclaEnIzquierda = (cIzq.length > 1);
+            let mezclaEnDerecha = (cDer.length > 1);
+
+            if (mezclaEnIzquierda || mezclaEnDerecha) {
+                // Hay mezclas en el tablero, informamos al estudiante sin bloquear la app
+                document.getElementById('consola-feedback').innerHTML = "⚠️ Aún hay variables y enteros mezclados en el mismo lado. ¡Muévelos correspondientemente!";
+                return; 
+            }
+
+            // 3. ANÁLISIS DE ESTRUCTURA LIMPIA (Un término por lado)
             let lX = null, lN = null;
             if (cIzq.length === 1 && cDer.length === 1) {
                 if (cIzq[0].getAttribute('data-tipo') === 'incognita' && cDer[0].getAttribute('data-tipo') === 'numero') {
@@ -501,6 +508,7 @@
                 }
             }
 
+            // 4. TRANSICIÓN A LA FASE DE DESPEJE FINAL
             if (lX && lN) {
                 const coef = parseInt(lX.c.getAttribute('data-valor'));
                 const numValor = parseInt(lN.c.getAttribute('data-valor'));
@@ -552,6 +560,9 @@
                 lN.z.appendChild(frac);
 
                 inyectarEventosTactiles();
+            } else {
+                // Si está limpio pero no tiene la estructura X = Número (por ejemplo, Número = X)
+                document.getElementById('consola-feedback').innerHTML = "Organiza las x en un lado y los enteros en el otro antes de despejar.";
             }
         }
 
@@ -612,7 +623,7 @@
             clearInterval(intervaloCronometro);
             const tiempoTotalSegundos = Math.floor((Date.now() - tiempoInicioTotal) / 1000);
             
-// Puntuacion
+            // Factor de descuento ajustado para hacerlo un poco más amigable (0.0025)
             let notaFinal = 5.0 - (tiempoTotalSegundos * 0.0025);
             if (notaFinal < 1.0) notaFinal = 1.0; 
             const notaFormateada = notaFinal.toFixed(1);
