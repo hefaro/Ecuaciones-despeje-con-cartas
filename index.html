@@ -88,6 +88,60 @@
         }
         .btn-acceso:disabled { opacity: 0.2; cursor: not-allowed; }
 
+        .btn-instrucciones {
+            background-color: #e65100;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .btn-instrucciones:hover { background-color: #f57c00; }
+
+        /* VENTANA MODAL DE INSTRUCCIONES */
+        .modal-instrucciones {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+        }
+        .modal-contenido {
+            background-color: #142d15;
+            border: 2px solid #8d6e63;
+            border-radius: 12px;
+            max-width: 550px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            position: relative;
+        }
+        .modal-contenido h2 { color: #ffeb3b; font-size: 1.4rem; margin-top: 0; text-align: center; }
+        .modal-contenido h3 { color: #00f2ff; font-size: 1.05rem; margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 3px; }
+        .modal-contenido p, .modal-contenido li { font-size: 0.9rem; line-height: 1.4; color: #e0e0e0; }
+        .modal-contenido ul, .modal-contenido ol { padding-left: 20px; margin-top: 5px; }
+        .modal-contenido li { margin-bottom: 6px; }
+        .badge-manual { background: #ffeb3b; color: #212121; padding: 1px 5px; border-radius: 3px; font-weight: bold; font-size: 0.8em; }
+        .badge-manual-x { background: #4caf50; color: white; padding: 1px 5px; border-radius: 3px; font-weight: bold; font-size: 0.8em; }
+        .btn-cerrar-modal {
+            background-color: #d32f2f;
+            color: white;
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+
         /* AREA DE JUEGO */
         #zona-juego-contenedor {
             display: none;
@@ -201,6 +255,38 @@
             <option value="">IDENTIFICACIÓN...</option>
         </select>
         <button id="start-btn" class="btn-acceso" disabled>INICIAR EVALUACIÓN</button>
+        <button id="help-btn" class="btn-instrucciones" onclick="abrirManual()">📖 VER INSTRUCCIONES</button>
+    </div>
+
+    <!-- ESTRUCTURA MODAL DE LAS INSTRUCCIONES -->
+    <div id="modal-ayuda" class="modal-instrucciones">
+        <div class="modal-contenido">
+            <h2>Manual de Operación rápida</h2>
+            
+            <h3>1. El Objetivo</h3>
+            <p>Debes resolver 10 ecuaciones lineales. La evaluación inicia con nota de <strong>5.0</strong>; piensa rápido y razona con cuidado, pues el paso del tiempo descuenta milésimas de la nota final.</p>
+
+            <h3>2. Identificación de Cartas</h3>
+            <ul>
+                <li><span class="badge-manual">Cartas Amarillas (+)</span>: Valores positivos.</li>
+                <li><span class="badge-manual-x">Cartas Verdes (-)</span>: Valores negativos.</li>
+                <li><strong>Términos con X:</strong> Tienen la letra integrada (ej: <code>+3x</code>).</li>
+                <li><strong>Términos Enteros:</strong> Números puros (ej: <code>-5</code>).</li>
+            </ul>
+
+            <h3>3. Mecánica en Tablero</h3>
+            <ol>
+                <li><strong>Organización:</strong> Arrastra los elementos. Pon todas las variables <span class="badge-manual-x">x</span> en un lado del tablero y los enteros en el otro. Al cruzar el signo igual (<code>=</code>), la carta <strong>cambia de signo automáticamente</strong>.</li>
+                <li><strong>Reducción:</strong> Cuando estén agrupados correspondientemente, presiona el botón <strong>'Sumar Miembros'</strong>.</li>
+                <li><strong>Despeje:</strong> Si la incógnita tiene coeficiente, arrástrala hacia el denominador de la fracción en el lado opuesto.</li>
+                <li><strong>Cálculo:</strong> Toca <strong>'Calcular Valor'</strong> para cerrar la ecuación.</li>
+            </ol>
+
+            <h3>4. Casos Especiales</h3>
+            <p>Si al operar notas que las variables <span class="badge-manual-x">x</span> se eliminan por completo en ambos lados, el sistema activará el botón <strong>'Sin Solución'</strong> para marcar la nulidad (<code>Ø</code>).</p>
+
+            <button class="btn-cerrar-modal" onclick="cerrarManual()">ENTENDIDO / CERRAR</button>
+        </div>
     </div>
 
     <div id="zona-juego-contenedor">
@@ -241,6 +327,15 @@
         let jugadorSeleccionado = null;
         let grupoSeleccionado = null;
         let apiUrlActual = null;
+
+        // --- FUNCIONES DEL MODAL DE INSTRUCCIONES ---
+        function abrirManual() {
+            document.getElementById('modal-ayuda').style.display = 'flex';
+        }
+
+        function cerrarManual() {
+            document.getElementById('modal-ayuda').style.display = 'none';
+        }
 
         // --- ENLACE CON TU SCRIPT GAS ---
         const groupSel = document.getElementById('group-select');
@@ -493,7 +588,7 @@
 
             if (mezclaEnIzquierda || mezclaEnDerecha) {
                 document.getElementById('consola-feedback').innerHTML = "⚠️ Aún hay variables y enteros mezclados en el mismo lado. ¡Muévelos correspondientemente!";
-                inyectarEventosTactiles(); // <-- CAMBIO CLAVE: Reinyectar eventos aquí para mantener la movilidad activa
+                inyectarEventosTactiles(); 
                 return; 
             }
 
@@ -561,7 +656,7 @@
                 inyectarEventosTactiles();
             } else {
                 document.getElementById('consola-feedback').innerHTML = "Organiza las x en un lado y los enteros en el otro antes de despejar.";
-                inyectarEventosTactiles(); // <-- CAMBIO CLAVE: Reinyectar eventos aquí también
+                inyectarEventosTactiles(); 
             }
         }
 
