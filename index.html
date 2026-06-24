@@ -230,7 +230,6 @@
         .btn-sumar { background-color: #0288d1; }
         .btn-calcular { background-color: #00c853; display: none; }
         .btn-siguiente { background-color: #e65100; display: none; }
-        .btn-vacia { background-color: #d32f2f; display: none; }
 
         @keyframes pulso {
             0% { transform: scale(1); }
@@ -258,7 +257,6 @@
         <button id="help-btn" class="btn-instrucciones" onclick="abrirManual()">📖 VER INSTRUCCIONES</button>
     </div>
 
-    <!-- ESTRUCTURA MODAL DE LAS INSTRUCCIONES -->
     <div id="modal-ayuda" class="modal-instrucciones">
         <div class="modal-contenido">
             <h2>Manual de Operación rápida</h2>
@@ -282,9 +280,6 @@
                 <li><strong>Cálculo:</strong> Toca <strong>'Calcular Valor'</strong> para cerrar la ecuación.</li>
             </ol>
 
-            <h3>4. Casos Especiales</h3>
-            <p>Si al operar notas que las variables <span class="badge-manual-x">x</span> se eliminan por completo en ambos lados, el sistema activará el botón <strong>'Sin Solución'</strong> para marcar la nulidad (<code>Ø</code>).</p>
-
             <button class="btn-cerrar-modal" onclick="cerrarManual()">ENTENDIDO / CERRAR</button>
         </div>
     </div>
@@ -305,7 +300,6 @@
 
         <div id="controles">
             <button id="btn-sumar" class="game-btn btn-sumar" onclick="sumarLados()">Sumar Miembros</button>
-            <button id="btn-vacia" class="game-btn btn-vacia" onclick="declararSinSolucion()">Sin Solución</button>
             <button id="btn-calcular" class="game-btn btn-calcular" onclick="calcularResultadoFinal()">Calcular Valor</button>
             <button id="btn-siguiente" class="game-btn btn-siguiente" onclick="avanzarDesafio()">Siguiente Ecuación</button>
         </div>
@@ -322,7 +316,6 @@
         const TOTAL_ECUACIONES = 10;
         let tiempoInicioTotal = 0;
         let intervaloCronometro = null;
-        let xSeCancelaEnEstaEcuacion = false;
 
         let jugadorSeleccionado = null;
         let grupoSeleccionado = null;
@@ -376,13 +369,11 @@
             generarEcuacionAleatoria();
         };
 
-        // --- GENERADOR ---
+        // --- GENERADOR MEJORADO PARA GARANTIZAR RESPUESTA SIEMPRE ---
         function generarEcuacionAleatoria() {
             faseDespeje = false;
-            xSeCancelaEnEstaEcuacion = Math.random() < 0.20; 
 
             document.getElementById('btn-sumar').style.display = 'inline-block';
-            document.getElementById('btn-vacia').style.display = 'none';
             document.getElementById('btn-calcular').style.display = 'none';
             document.getElementById('btn-siguiente').style.display = 'none';
             document.getElementById('txt-ecuacion-num').textContent = `Ecuación: ${ecuacionActual} / ${TOTAL_ECUACIONES}`;
@@ -393,30 +384,24 @@
             zonaIzq.innerHTML = '';
             zonaDer.innerHTML = '';
 
-            if (xSeCancelaEnEstaEcuacion) {
-                const xComun = Math.floor(Math.random() * 3) + 2;
-                const numIzq = Math.floor(Math.random() * 5) + 1;
-                const numDer = numIzq + (Math.floor(Math.random() * 4) + 2); 
+            // Se calcula un coeficiente neto forzado distinto de cero
+            let coefFinal;
+            do {
+                coefFinal = (Math.floor(Math.random() * 3) + 2) * (Math.random() > 0.5 ? 1 : -1);
+            } while (coefFinal === 0);
 
-                crearCartaEstatica(zonaIzq, xComun, 'incognita');
-                crearCartaEstatica(zonaIzq, numIzq, 'numero');
-                crearCartaEstatica(zonaDer, xComun, 'incognita');
-                crearCartaEstatica(zonaDer, numDer, 'numero');
-            } else {
-                const xObjetivo = Math.floor(Math.random() * 7) + 2 * (Math.random() > 0.5 ? 1 : -1); 
-                const coefFinal = Math.floor(Math.random() * 3) + 2 * (Math.random() > 0.5 ? 1 : -1); 
+            const xObjetivo = Math.floor(Math.random() * 7) + 2 * (Math.random() > 0.5 ? 1 : -1); 
 
-                const xIzq1 = Math.floor(Math.random() * 4) + 1;
-                const xDer1 = xIzq1 - coefFinal; 
+            const xIzq1 = Math.floor(Math.random() * 4) + 1;
+            const xDer1 = xIzq1 - coefFinal; 
 
-                const numDer1 = Math.floor(Math.random() * 5) + 1;
-                const numIzq1 = numDer1 - (coefFinal * xObjetivo);
+            const numDer1 = Math.floor(Math.random() * 5) + 1;
+            const numIzq1 = numDer1 - (coefFinal * xObjetivo);
 
-                crearCartaEstatica(zonaIzq, xIzq1, 'incognita');
-                crearCartaEstatica(zonaIzq, numIzq1, 'numero');
-                crearCartaEstatica(zonaDer, xDer1, 'incognita');
-                crearCartaEstatica(zonaDer, numDer1, 'numero');
-            }
+            crearCartaEstatica(zonaIzq, xIzq1, 'incognita');
+            crearCartaEstatica(zonaIzq, numIzq1, 'numero');
+            crearCartaEstatica(zonaDer, xDer1, 'incognita');
+            crearCartaEstatica(zonaDer, numDer1, 'numero');
 
             inyectarEventosTactiles();
         }
@@ -569,20 +554,11 @@
             }
         }
 
-        // --- SISTEMA DE VERIFICACIÓN TOTALMENTE FLUIDO ---
+        // --- VERIFICACIÓN DE CLASIFICACIÓN ---
         function comprobarDespejeFase() {
             const cIzq = document.getElementById('izq').querySelectorAll('.carta');
             const cDer = document.getElementById('der').querySelectorAll('.carta');
-            
-            // 1. CONDICIÓN DE ANULACIÓN DE VARIABLES (Sin Solución)
-            if (xSeCancelaEnEstaEcuacion || (cIzq.length === 1 && cDer.length === 1 && cIzq[0].getAttribute('data-tipo') === 'numero' && cDer[0].getAttribute('data-tipo') === 'numero')) {
-                document.getElementById('btn-sumar').style.display = 'none';
-                document.getElementById('btn-vacia').style.display = 'inline-block';
-                document.getElementById('consola-feedback').innerHTML = "⚠️ ¡Las variables x se han anulado! Declara el estado de la ecuación.";
-                return;
-            }
 
-            // 2. VERIFICACIÓN DE CLASIFICACIÓN CORRECTA
             let mezclaEnIzquierda = (cIzq.length > 1);
             let mezclaEnDerecha = (cDer.length > 1);
 
@@ -592,7 +568,7 @@
                 return; 
             }
 
-            // 3. ANÁLISIS DE ESTRUCTURA LIMPIA
+            // ANÁLISIS DE ESTRUCTURA LIMPIA
             let lX = null, lN = null;
             if (cIzq.length === 1 && cDer.length === 1) {
                 if (cIzq[0].getAttribute('data-tipo') === 'incognita' && cDer[0].getAttribute('data-tipo') === 'numero') {
@@ -602,7 +578,7 @@
                 }
             }
 
-            // 4. TRANSICIÓN A LA FASE DE DESPEJE FINAL
+            // TRANSICIÓN A LA FASE DE DESPEJE FINAL
             if (lX && lN) {
                 const coef = parseInt(lX.c.getAttribute('data-valor'));
                 const numValor = parseInt(lN.c.getAttribute('data-valor'));
@@ -658,19 +634,6 @@
                 document.getElementById('consola-feedback').innerHTML = "Organiza las x en un lado y los enteros en el otro antes de despejar.";
                 inyectarEventosTactiles(); 
             }
-        }
-
-        function declararSinSolucion() {
-            document.getElementById('btn-vacia').style.display = 'none';
-            document.getElementById('der').innerHTML = '';
-            
-            const cartaNula = document.createElement('div');
-            cartaNula.className = 'carta carta-vacia';
-            cartaNula.textContent = 'Ø';
-            document.getElementById('der').appendChild(cartaNula);
-
-            document.getElementById('consola-feedback').innerHTML = `✖️ <strong>La ecuación no tiene solución</strong>.`;
-            document.getElementById('btn-siguiente').style.display = 'inline-block';
         }
 
         function finalizarEcuacionNormal(valorFinal) {
